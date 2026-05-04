@@ -1,3 +1,5 @@
+import os
+import glob
 import pygame
 from pygame.locals import *
 from OpenGL.GL import *
@@ -6,15 +8,76 @@ import numpy as np
 import librosa
 import sys
 
-def main():
-    audio_path = "olharpratras/4-cais.mp3"
+def selecionar_musica(display_width, display_height):
+    pygame.init()
+    tela = pygame.display.set_mode((display_width, display_height))
+    pygame.display.set_caption("Selecao de Musica")
     
-    print("Analysing audio file... This may take a while")
+    fonte_titulo = pygame.font.SysFont("Arial", 36, bold=True)
+    fonte_item = pygame.font.SysFont("Arial", 28)
+    
+    arquivos = glob.glob("olharpratras/*.mp3")
+    if not arquivos:
+        arquivos = glob.glob("*.mp3")
+        
+    if not arquivos:
+        sys.exit()
+
+    selecionado = 0
+    rodando = True
+    clock = pygame.time.Clock()
+
+    while rodando:
+        tela.fill((20, 20, 25))
+        
+        titulo = fonte_titulo.render("Selecione a Musica", True, (255, 255, 255))
+        tela.blit(titulo, (display_width//2 - titulo.get_width()//2, 50))
+
+        for i, arq in enumerate(arquivos):
+            nome_arq = os.path.basename(arq)
+            if i == selecionado:
+                cor = (50, 255, 150)
+                prefixo = ">>  "
+            else:
+                cor = (150, 150, 150)
+                prefixo = "    "
+                
+            texto = fonte_item.render(prefixo + nome_arq, True, cor)
+            tela.blit(texto, (display_width//2 - 200, 150 + i * 40))
+
+        pygame.display.flip()
+
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == KEYDOWN:
+                if event.key == K_UP:
+                    selecionado = (selecionado - 1) % len(arquivos)
+                elif event.key == K_DOWN:
+                    selecionado = (selecionado + 1) % len(arquivos)
+                elif event.key == K_RETURN:
+                    rodando = False
+
+        clock.tick(30)
+
+    tela.fill((20, 20, 25))
+    nome_musica = os.path.basename(arquivos[selecionado])
+    texto_carga = fonte_titulo.render(f"Analisando: {nome_musica}...", True, (255, 200, 50))
+    texto_aviso = fonte_item.render("Aguarde...", True, (200, 200, 200))
+    tela.blit(texto_carga, (display_width//2 - texto_carga.get_width()//2, display_height//2 - 30))
+    tela.blit(texto_aviso, (display_width//2 - texto_aviso.get_width()//2, display_height//2 + 20))
+    pygame.display.flip()
+
+    return arquivos[selecionado]
+
+def main():
+    display_width, display_height = 800, 600
+    audio_path = selecionar_musica(display_width, display_height)
     
     try:
         y, sr = librosa.load(audio_path, sr=22050)
     except Exception as e:
-        print(f"Path error: {e}")
         return
 
     hop_length = 512
@@ -28,11 +91,9 @@ def main():
 
     fps_audio = sr / hop_length
 
-    pygame.init()
     pygame.mixer.init()
-    display_width, display_height = 800, 600
     pygame.display.set_mode((display_width, display_height), DOUBLEBUF | OPENGL)
-    pygame.display.set_caption("vou me jogar nesse mar de lágrimas")
+    pygame.display.set_caption(os.path.basename(audio_path))
 
     glMatrixMode(GL_PROJECTION)
     glLoadIdentity()
@@ -43,7 +104,6 @@ def main():
         pygame.mixer.music.load(audio_path)
         pygame.mixer.music.play()
     except Exception as e:
-        print(f"Pygame music error: {e}")
         pygame.quit()
         return
 
