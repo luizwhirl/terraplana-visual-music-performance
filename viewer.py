@@ -7,7 +7,7 @@ import librosa
 import sys
 
 def main():
-    audio_path = "cais.mp3"
+    audio_path = "olharpratras/4-cais.mp3"
     
     print("Analysing audio file... This may take a while")
     
